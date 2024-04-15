@@ -1,13 +1,11 @@
-from typing import List
+from typing import List, Tuple
 from transformers import AutoTokenizer, AutoModel
-from scoring import mean_pool
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-from typing import List, Tuple
-from scoring import score, score_against_space
 import pickle
 import numpy as np
 import torch
+
 
 class StarEncoder:
     MASK_TOKEN = "<mask>"
@@ -114,3 +112,12 @@ def score_against_space(space, example):
         [example],
         space
     )[0]
+
+
+def mean_pool(attn_mask, emb):
+    mask = attn_mask.unsqueeze(-1).expand(emb.size()).float()
+    masked_embeddings = emb * mask
+    summed = torch.sum(masked_embeddings, 1)
+    counted = torch.clamp(mask.sum(1), min=1e-9)
+    mean_pooled = summed / counted
+    return mean_pooled.detach().cpu().numpy()
